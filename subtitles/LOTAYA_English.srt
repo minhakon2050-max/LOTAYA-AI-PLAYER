@@ -1,0 +1,15 @@
+1
+00:00:00,000 --> 00:00:03,000
+Hello.
+
+2
+00:00:03,000 --> 00:00:06,000
+Welcome to LOTAYA AI PLAYER.
+
+3
+00:00:06,000 --> 00:00:10,000
+We are testing AI Subtitle Translation.
+
+4
+00:00:10,000 --> 00:00:13,000
+Thank you.

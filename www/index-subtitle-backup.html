@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTAYA AI PLAYER</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10121c;color:white;font-family:Arial,sans-serif}
+header{padding:22px;background:#191d2c;text-align:center}
+header h1{margin:0;color:#a78bfa;letter-spacing:2px}
+header p{color:#aaa;font-size:12px}
+nav{display:flex;justify-content:space-around;padding:15px;background:#202437}
+nav button,button{border:0;border-radius:10px;padding:11px 15px;background:#7955d9;color:white}
+main{padding:18px;max-width:700px;margin:auto}
+.card{background:#1c2030;padding:18px;border-radius:16px;margin-bottom:16px}
+input{width:100%;padding:13px;border:0;border-radius:10px;margin:10px 0;background:#30364b;color:white}
+h2{color:#c4b5fd;font-size:19px}
+#songs{list-style:none;padding:0}
+#songs li{padding:13px;border-bottom:1px solid #35394a;cursor:pointer}
+audio,video{width:100%;margin-top:12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.light{background:#eee;color:#222}
+.light .card{background:#fff}
+
+.video-wrap{position:relative}
+#subtitleText{position:absolute;bottom:48px;left:4%;width:92%;text-align:center;color:white;font-size:18px;font-weight:bold;text-shadow:2px 2px 4px black;background:#0008;padding:8px;border-radius:8px;pointer-events:none}
+
+</style>
+</head>
+<body>
+<header>
+<h1>LOTAYA AI PLAYER</h1>
+<p>YOUR MUSIC · YOUR WORLD</p>
+</header>
+<nav>
+<button onclick="show('music')">Music</button>
+<button onclick="show('video')">Video</button>
+<button onclick="show('playlist')">Playlist</button>
+<button onclick="document.body.classList.toggle('light')">Theme</button>
+</nav>
+<main>
+<section class="card" id="music">
+<h2>🎵 Music Library</h2>
+<input type="file" id="musicFiles" accept="audio/*" multiple>
+<input id="search" placeholder="Search songs..." oninput="searchSongs()">
+<ul id="songs"></ul>
+<audio id="audio" controls></audio>
+<div class="controls">
+<button onclick="audio.play()">Play</button>
+<button onclick="audio.pause()">Pause</button>
+<button onclick="audio.currentTime=0">Restart</button>
+<button onclick="audio.loop=!audio.loop">Repeat</button>
+<button onclick="shuffle()">Shuffle</button>
+</div>
+</section>
+<section class="card" id="video">
+<h2>🎬 Video Library</h2>
+<input type="file" id="videoFiles" accept="video/*" multiple>
+<div class="video-wrap">
+<video id="player" controls></video>
+<div id="subtitleText"></div>
+</div>
+<h2>📝 Subtitle Import</h2>
+<input type="file" id="subtitleFiles" accept=".srt,text/plain">
+<p id="subtitleStatus">Import an SRT subtitle file.</p>
+<p>AI Auto Subtitle: Offline engine integration is the next stage.</p>
+</section>
+<section class="card" id="playlist">
+<h2>📀 Playlist</h2>
+<p id="playlistInfo">Your playlist is empty.</p>
+</section>
+
+<section class="card" id="ai-chat">
+<h2>🤖 LOTAYA AI Assistant</h2>
+<div id="aiMessages" style="height:260px;overflow-y:auto;background:#10121c;padding:12px;border-radius:12px;margin-bottom:12px">
+<p>🤖 Hello! I'm LOTAYA AI. Ask me anything!</p>
+</div>
+<input id="aiInput" placeholder="Ask LOTAYA AI..." />
+<button onclick="sendAI()" style="width:100%">Send Message ➤</button>
+<p id="aiStatus">AI Engine: Ready</p>
+</section>
+
+</main>
+<script>
+const audio=document.getElementById('audio');
+const player=document.getElementById('player');
+let tracks=[];
+let current=0;
+document.getElementById('musicFiles').onchange=e=>{
+tracks=Array.from(e.target.files);
+render();
+};
+function render(){
+const list=document.getElementById('songs');
+list.innerHTML='';
+tracks.forEach((file,i)=>{
+let li=document.createElement('li');
+li.textContent='🎵 '+file.name;
+li.onclick=()=>play(i);
+list.appendChild(li);
+});
+document.getElementById('playlistInfo').textContent=tracks.length+' songs added';
+}
+function play(i){
+current=i;
+audio.src=URL.createObjectURL(tracks[i]);
+audio.play();
+}
+function searchSongs(){
+let q=document.getElementById('search').value.toLowerCase();
+document.querySelectorAll('#songs li').forEach(li=>{
+li.style.display=li.textContent.toLowerCase().includes(q)?'block':'none';
+});
+}
+function shuffle(){
+if(!tracks.length)return;
+play(Math.floor(Math.random()*tracks.length));
+}
+
+let subtitleCues = [];
+
+function parseSRT(text) {
+  return text.replace(/\r/g, '').trim().split(/\n\s*\n/).map(block => {
+    const lines = block.split('\n');
+    const index = lines.findIndex(line => line.includes('-->'));
+    if (index < 0) return null;
+    const times = lines[index].split('-->');
+    const seconds = value => {
+      const parts = value.trim().replace(',', '.').split(':');
+      return Number(parts[0])*3600 + Number(parts[1])*60 + Number(parts[2]);
+    };
+    return {
+      start: seconds(times[0]),
+      end: seconds(times[1]),
+      text: lines.slice(index + 1).join('\n')
+    };
+  }).filter(Boolean);
+}
+
+document.getElementById('subtitleFiles').onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  subtitleCues = parseSRT(await file.text());
+  document.getElementById('subtitleStatus').textContent =
+    subtitleCues.length + ' subtitle entries loaded.';
+  updateSubtitle();
+};
+
+function updateSubtitle() {
+  const cue = subtitleCues.find(item =>
+    player.currentTime >= item.start && player.currentTime <= item.end
+  );
+  document.getElementById('subtitleText').textContent = cue ? cue.text : '';
+}
+
+player.addEventListener('timeupdate', updateSubtitle);
+
+document.getElementById('videoFiles').onchange=e=>{
+if(e.target.files.length){
+player.src=URL.createObjectURL(e.target.files[0]);
+player.play();
+}
+};
+function show(id){
+document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+
+// LOTAYA_AI_CHAT
+async function sendAI(){
+    const input = document.getElementById('aiInput');
+    const messages = document.getElementById('aiMessages');
+    const status = document.getElementById('aiStatus');
+    const message = input.value.trim();
+
+    if(!message) return;
+
+    const user = document.createElement('p');
+    user.textContent = '👤 You: ' + message;
+    messages.appendChild(user);
+    input.value = '';
+    status.textContent = 'LOTAYA AI is thinking...';
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({message})
+        });
+
+        const data = await response.json();
+        if(!response.ok) throw new Error(data.error || 'Server error');
+
+        const reply = document.createElement('p');
+        reply.textContent = '🤖 LOTAYA AI: ' + (data.reply || data.error);
+        messages.appendChild(reply);
+        status.textContent = 'AI Engine: Ready';
+    } catch(error) {
+        status.textContent = 'Error: ' + error.message;
+    }
+
+    messages.scrollTop = messages.scrollHeight;
+}
+
+document.getElementById('aiInput').addEventListener('keydown', e => {
+    if(e.key === 'Enter') sendAI();
+});
+
+
+// LOTAYA_AI_TRANSLATION_UI
+let lotayaSubtitleDisplayMode = "original";
+
+function lotayaSubtitleMode(mode) {
+    lotayaSubtitleDisplayMode = mode;
+    if (typeof updateSubtitle === "function") updateSubtitle();
+}
+
+async function lotayaTranslate() {
+    const status = document.getElementById("lotayaTranslateStatus");
+    const button = document.getElementById("lotayaTranslateBtn");
+    const language = document.getElementById("lotayaLanguage").value;
+
+    if (typeof subtitleCues === "undefined" || !subtitleCues.length) {
+        status.textContent = "Please import an SRT subtitle first.";
+        return;
+    }
+
+    button.disabled = true;
+    let completed = 0;
+
+    try {
+        for (let i = 0; i < subtitleCues.length; i += 20) {
+            const batch = subtitleCues.slice(i, i + 20);
+            status.textContent = "Translating " + (i + 1) + "–" +
+                Math.min(i + 20, subtitleCues.length) + " / " + subtitleCues.length;
+
+            const response = await fetch("/api/translate", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    texts: batch.map(cue => cue.text),
+                    language: language
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok || !Array.isArray(data.translations)) {
+                throw new Error(data.error || "Translation failed");
+            }
+
+            batch.forEach((cue, index) => {
+                cue.translatedText = data.translations[index];
+            });
+            completed += batch.length;
+        }
+
+        lotayaSubtitleDisplayMode = "translated";
+        if (typeof updateSubtitle === "function") updateSubtitle();
+        status.textContent = "✅ Translation complete: " + completed + " subtitles";
+    } catch (error) {
+        status.textContent = "❌ " + error.message;
+    } finally {
+        button.disabled = false;
+    }
+}
+
+</script>
+
+<!-- LOTAYA_AI_TRANSLATION_UI -->
+<div class="card" id="lotayaTranslation">
+<h3>🌐 LOTAYA AI Subtitle Translation</h3>
+<select id="lotayaLanguage" style="width:100%;padding:12px;margin:8px 0">
+<option value="Burmese">မြန်မာဘာသာ</option>
+<option value="English">English</option>
+<option value="Korean">한국어</option>
+<option value="Chinese (Simplified)">中文</option>
+<option value="Japanese">日本語</option>
+<option value="Thai">ไทย</option>
+</select>
+<button id="lotayaTranslateBtn" onclick="lotayaTranslate()" style="width:100%;padding:12px">
+✨ AI Translate Subtitles
+</button>
+<button onclick="lotayaSubtitleMode('original')" style="width:49%;padding:10px">Original</button>
+<button onclick="lotayaSubtitleMode('translated')" style="width:49%;padding:10px">Translated</button>
+<p id="lotayaTranslateStatus">Ready</p>
+</div>
+
+</body>
+</html>
+

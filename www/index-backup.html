@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTAYA AI PLAYER</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10121c;color:white;font-family:Arial,sans-serif}
+header{padding:22px;background:#191d2c;text-align:center}
+header h1{margin:0;color:#a78bfa;letter-spacing:2px}
+header p{color:#aaa;font-size:12px}
+nav{display:flex;justify-content:space-around;padding:15px;background:#202437}
+nav button,button{border:0;border-radius:10px;padding:11px 15px;background:#7955d9;color:white}
+main{padding:18px;max-width:700px;margin:auto}
+.card{background:#1c2030;padding:18px;border-radius:16px;margin-bottom:16px}
+input{width:100%;padding:13px;border:0;border-radius:10px;margin:10px 0;background:#30364b;color:white}
+h2{color:#c4b5fd;font-size:19px}
+#songs{list-style:none;padding:0}
+#songs li{padding:13px;border-bottom:1px solid #35394a;cursor:pointer}
+audio,video{width:100%;margin-top:12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.light{background:#eee;color:#222}
+.light .card{background:#fff}
+</style>
+</head>
+<body>
+<header>
+<h1>LOTAYA AI PLAYER</h1>
+<p>YOUR MUSIC · YOUR WORLD</p>
+</header>
+<nav>
+<button onclick="show('music')">Music</button>
+<button onclick="show('video')">Video</button>
+<button onclick="show('playlist')">Playlist</button>
+<button onclick="document.body.classList.toggle('light')">Theme</button>
+</nav>
+<main>
+<section class="card" id="music">
+<h2>🎵 Music Library</h2>
+<input type="file" id="musicFiles" accept="audio/*" multiple>
+<input id="search" placeholder="Search songs..." oninput="searchSongs()">
+<ul id="songs"></ul>
+<audio id="audio" controls></audio>
+<div class="controls">
+<button onclick="audio.play()">Play</button>
+<button onclick="audio.pause()">Pause</button>
+<button onclick="audio.currentTime=0">Restart</button>
+<button onclick="audio.loop=!audio.loop">Repeat</button>
+<button onclick="shuffle()">Shuffle</button>
+</div>
+</section>
+<section class="card" id="video">
+<h2>🎬 Video Library</h2>
+<input type="file" id="videoFiles" accept="video/*" multiple>
+<video id="player" controls></video>
+</section>
+<section class="card" id="playlist">
+<h2>📀 Playlist</h2>
+<p id="playlistInfo">Your playlist is empty.</p>
+</section>
+</main>
+<script>
+const audio=document.getElementById('audio');
+const player=document.getElementById('player');
+let tracks=[];
+let current=0;
+document.getElementById('musicFiles').onchange=e=>{
+tracks=Array.from(e.target.files);
+render();
+};
+function render(){
+const list=document.getElementById('songs');
+list.innerHTML='';
+tracks.forEach((file,i)=>{
+let li=document.createElement('li');
+li.textContent='🎵 '+file.name;
+li.onclick=()=>play(i);
+list.appendChild(li);
+});
+document.getElementById('playlistInfo').textContent=tracks.length+' songs added';
+}
+function play(i){
+current=i;
+audio.src=URL.createObjectURL(tracks[i]);
+audio.play();
+}
+function searchSongs(){
+let q=document.getElementById('search').value.toLowerCase();
+document.querySelectorAll('#songs li').forEach(li=>{
+li.style.display=li.textContent.toLowerCase().includes(q)?'block':'none';
+});
+}
+function shuffle(){
+if(!tracks.length)return;
+play(Math.floor(Math.random()*tracks.length));
+}
+document.getElementById('videoFiles').onchange=e=>{
+if(e.target.files.length){
+player.src=URL.createObjectURL(e.target.files[0]);
+player.play();
+}
+};
+function show(id){
+document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
+
